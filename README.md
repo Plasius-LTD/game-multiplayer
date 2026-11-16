@@ -1,6 +1,6 @@
 # @plasius/game-multiplayer
 
-Provider-neutral authoritative rooms, matching, reconnect and runtime delegation
+Provider-neutral authoritative rooms, matching, reconnect, results and runtime delegation
 for Plasius spatial games, with a separate native Azure Web PubSub adapter.
 [Task #1](https://github.com/Plasius-LTD/game-multiplayer/issues/1),
 [Feature #2387](https://github.com/Plasius-LTD/plasius-ltd-site/issues/2387),
@@ -72,6 +72,53 @@ backward clocks, runtime faults and discarded simulation time stop admission.
 Overload is explicit; stopped authority is not ranking-eligible. `dispose` ends
 access and disposes the runtime.
 
+## Authoritative results
+
+Configure `results: { metric: { id: "points", order: "descending" }, evaluate,
+eligible }` on `createAuthority`. The game-owned synchronous `evaluate(snapshot)`
+returns `null` until terminal, then a `gameOutcome` version `1.0.0` with one entry
+per allocated slot: `{ playerId, outcome: "finished", value }` or
+`{ playerId, outcome: "forfeited" }`. Values are safe integers. The authority
+supplies the actual runtime snapshot; `finalize()` takes no arguments. A completed
+result requires a positive runtime tick. Departed slots cannot finish, original
+aliases/participants remain pinned and connection generations cannot roll back.
+
+`eligible({ roomId, revision, epoch, playerId })` is separate trusted host policy.
+Only synchronous literal `true` grants ranking eligibility. Resolve
+`arcade.rankings.enabled`, `arcade.rankings.submit` and account/guardian/consent
+policy in the host. Missing, async, throwing or unavailable policy denies ranking.
+Game evaluation and client intentions cannot grant it.
+
+Successful `finalize()` pauses the runtime and returns one detached
+`ResultCandidate`: `result`, `nextRoom`, expected prior room revision/epoch,
+room-derived `idempotencyKey` and lease deadline `notAfter`. Further intentions
+and stepping stop. Repeated calls return the identical candidate, even after an
+uncertain commit or deadline expiry; `dispose()` clears it. A candidate is private
+commit evidence, not a client response, durable receipt or newly acquired lease.
+
+The host's atomic commit handler must first reconcile an existing result with
+`classifyResultReplay(existing, candidate.result)`: identical means prior success,
+conflict fails, and `null` means confirmed absence. For a new result, compare the
+expected room/revision/epoch and persisted live ownership/deadline, then commit
+room, result and outbox together. Preserve the exact candidate across a timeout.
+The graph write coordinator retains queue/timeout/commit orchestration. Project
+subject progress and rankings separately and idempotently from the committed
+outbox; do not claim cross-partition atomicity.
+
+`parseGameResult` and `serializeGameResult` strictly validate/canonicalize records
+within 16 KiB. Unknown versions or malformed existing records are errors, never
+an absent result. `createAbandonedResult(committedAbandonedRoom, finalTick?)`
+produces unranked evidence without inventing a score or missing final tick.
+`rankingPartition` and its parse/serialize helpers separate game, mode, rules,
+content, difficulty, sorted assistance and metric ID/order. Their canonical
+strings express equality; hosts map these logical keys to storage constraints.
+
+`projectRankingEntries(committedResult)` yields only eligible finished entries;
+apply fresh public visibility/guardian/consent policy before serving them.
+`summarizeGameResult` emits game/mode/status and counts only, with no room,
+subject, connection, alias or score fields. Parsing a record never proves its
+origin or authorizes a write.
+
 Use game-owned recipient projections, never private checkpoints. The library
 cannot infer which state is safe to broadcast. Frame parsers reject extra fields,
 future versions and malformed/oversized JSON. Client frames: 4 KiB UTF-8, with
@@ -134,7 +181,10 @@ handover. Never publish locally or use production workspace links. Unit/browser
 protocol tests cannot qualify Azure deployment or 100 players in UK South.
 
 See [design](docs/design/authoritative-sessions.md),
+[result design](docs/design/authoritative-results.md),
 [ADR 0001](docs/adrs/adr-0001-authoritative-session-boundaries.md),
 [ADR 0002](docs/adrs/adr-0002-azure-event-transport.md),
+[ADR 0003](docs/adrs/adr-0003-authoritative-result-commit-boundary.md),
 [TDR 0001](docs/tdrs/tdr-0001-room-and-admission-bounds.md),
+[TDR 0002](docs/tdrs/tdr-0002-result-validation-and-replay.md),
 [contributing](CONTRIBUTING.md) and [security](SECURITY.md). Apache-2.0.

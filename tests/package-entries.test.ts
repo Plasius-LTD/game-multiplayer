@@ -7,7 +7,9 @@ const require = createRequire(import.meta.url);
 const pack = vi.spyOn(childProcess, "execFileSync");
 const { EXPECTED_PACKED_PATHS, verifyPackageContents, verifyPackagePathInventory, main } = require("../scripts/verify-public-package.cjs");
 const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-const exports = { createRoom() {}, parseRoom() {}, planMatch() {}, createAuthority() {}, parseClientFrame() {}, parseServerFrame() {}, connectWebPubSub() {} };
+const exports = { createRoom() {}, parseRoom() {}, planMatch() {}, createAuthority() {}, parseClientFrame() {}, parseServerFrame() {}, connectWebPubSub() {},
+  parseGameResult() {}, serializeGameResult() {}, classifyResultReplay() {}, createAbandonedResult() {}, rankingPartition() {},
+  parseRankingPartition() {}, serializeRankingPartition() {}, projectRankingEntries() {}, summarizeGameResult() {} };
 
 describe("independent dual-module package entry policy", () => {
   it("requires exact self-contained core and lazy Azure entries", () => {

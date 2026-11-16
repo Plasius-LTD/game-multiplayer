@@ -38,7 +38,7 @@ export const integer = (min: number, max = Number.MAX_SAFE_INTEGER) =>
   field.number().validator(value => Number.isSafeInteger(value) && value >= min && value <= max);
 export const token = () => field.string().validator(value => /^[A-Za-z0-9_-]{1,128}$/.test(value));
 export const slug = () => field.string().validator(value => /^[a-z][a-z0-9-]{0,63}$/.test(value));
-const alias = () => field.string().validator(value => /^[A-Za-z][A-Za-z0-9 -]{0,31}$/.test(value));
+export const alias = () => field.string().validator(value => /^[A-Za-z][A-Za-z0-9 -]{0,31}$/.test(value));
 export const exact = { version: "1.0.0", identity: "exact", unknownFields: "reject" } as const;
 export const envelope = { ...exact, schemaValidator: (_value: unknown, context?: SchemaValidationContext) =>
   context?.wasProvided("type") === true && context.wasProvided("version") };
