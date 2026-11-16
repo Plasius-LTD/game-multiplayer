@@ -11,6 +11,22 @@ const releasePrepareWorkflow = read(".github/workflows/release-prepare.yml");
 const npmConfig = read(".npmrc");
 
 describe("release workflow trust boundaries", () => {
+  it("runs the complete coverage command without forwarding runner-specific options into its Node merger", () => {
+    const step = ciWorkflow.split("      - name: Test with coverage\n")[1]?.split("\n      - name:")[0];
+    expect(step).toBeDefined();
+    const script = step?.split("        run: |\n")[1];
+    expect(script).toBeDefined();
+    const npmContract = 'npm() { if [ "$#" -eq 2 ] && [ "$1" = run ] && [ "$2" = test:coverage ]; then return 0; else echo "unexpected coverage arguments" >&2; return 64; fi; }\n';
+    const result = spawnSync("bash", ["-c", npmContract + script], { encoding: "utf8" });
+    expect(result.status, result.stderr).toBe(0);
+    const command = JSON.parse(read("package.json")).scripts["test:coverage"];
+    expect(command).toContain("vitest run --coverage");
+    expect(command).toContain("npm run test:privacy");
+    expect(command).toContain("fs.appendFileSync('coverage/lcov.info'");
+    expect(read("vitest.config.ts")).toContain('"lcov"');
+    expect(ciWorkflow).toContain("Enforce line coverage >= 80%");
+  });
+
   it("admits only repository-owned pushes on explicit quarantined runners", () => {
     expect(ciWorkflow).toContain('branches: ["**"]');
     expect(ciWorkflow).not.toContain("pull_request:");

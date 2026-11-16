@@ -114,7 +114,7 @@ backtracking was added. Packed-entry tests failed before the copied runtime
 export policy was corrected. Provider-tool tests failed before safe CLI import
 boundaries and redacted diagnostics were implemented.
 
-Current validation: 95 Vitest tests plus 24 Node privacy tests pass. Types, lint,
+Current validation: 96 Vitest tests plus 24 Node privacy tests pass. Types, lint,
 build, exact 15-path package verification and full dependency audit (zero known
 vulnerabilities) pass. Combined LCOV includes all 12 source/tooling files:
 1,043/1,099 lines (94.90%), 733/772 branches (94.95%), 169/172 functions (98.26%).

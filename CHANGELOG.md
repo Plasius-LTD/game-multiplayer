@@ -10,5 +10,7 @@
   bounded acknowledgements/buffering, deadlines and cancellation.
 - Establish schema-baseline legal/privacy/tooling controls, exact dual-module
   tarball verification and combined coverage including release safeguards.
+- Keep CI coverage invocation compatible with both Vitest and Node privacy
+  reporting while retaining all coverage thresholds and combined LCOV gates.
 - Reuse the reviewed default-off main CD first-registration route, pending
   operator credential approval and permanent OIDC handover.

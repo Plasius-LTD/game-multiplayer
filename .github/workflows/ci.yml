@@ -67,15 +67,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          if node -e "const s=(require('./package.json').scripts||{})['test:coverage']||''; process.exit(s.includes('vitest') ? 0 : 1)"; then
-            npm run test:coverage -- --coverage.reporter=lcov --coverage.reporter=text-summary
-          elif node -e "const s=(require('./package.json').scripts||{})['test:coverage']||''; process.exit(s ? 0 : 1)"; then
-            npm run test:coverage
-          elif node -e "const s=(require('./package.json').scripts||{}).test||''; process.exit(s.includes('vitest') ? 0 : 1)"; then
-            npm run test -- --coverage --coverage.reporter=lcov --coverage.reporter=text-summary
-          else
-            npm run test -- --coverage
-          fi
+          # This package owns a multi-runner coverage script and combined LCOV.
+          # Runner-specific arguments would reach its final Node merge command.
+          npm run test:coverage
 
       - name: Locate coverage report
         run: |
