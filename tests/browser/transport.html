@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><link rel="icon" href="data:,"><title>Multiplayer transport contract verification</title>
+<h1>Multiplayer transport contract verification</h1><p id="result">Ready for a controlled provider-protocol fixture.</p>
+<script type="module">
+import { connectWebPubSub } from "/transport.js";
+window.runTransportSmoke = async () => {
+  const frames = [];
+  let timer;
+  let resolveFrames;
+  const received = new Promise(resolve => { resolveFrames = resolve; timer = setTimeout(() => resolve(false), 3000); });
+  const controller = new AbortController();
+  const transport = connectWebPubSub({
+    url: "wss://arcade-fixture.webpubsub.azure.com/client/hubs/arcade?access_token=fixture",
+    serviceOrigin: "wss://arcade-fixture.webpubsub.azure.com", hub: "arcade", expiresAt: Date.now() + 30_000,
+    roomId: "room-fixture", generation: 1, epoch: 1, signal: controller.signal,
+    onFrame: frame => { frames.push(frame); if (frames.length === 2) resolveFrames(true); },
+  });
+  try {
+    if (!await transport.ready) throw new Error("transport-not-ready-" + (await transport.closed));
+    const receipt = await transport.send({ type: "gameClientFrame", version: "1.0.0", roomId: "room-fixture", generation: 1,
+      kind: "intent", intentJson: JSON.stringify({ type: "gameInput", version: "1.0.0", tick: 1, sequence: 1, playerId: "p1", axes: {x:1,y:0,z:0}, buttons: 0 }) });
+    if (receipt.status !== "acknowledged" || !await received || frames[0].epoch !== 1 || frames[1].epoch !== 2) throw new Error("protocol-contract-failed");
+    controller.abort();
+    if (await transport.closed !== "cancelled") throw new Error("cancel-contract-failed");
+    const result = { passed: true, frames: frames.length, nativeSocket: true, provider: "intercepted protocol fixture; no Azure cloud claim" };
+    document.querySelector("#result").textContent = JSON.stringify(result);
+    return result;
+  } finally { clearTimeout(timer); transport.dispose(); }
+};
+</script></html>
