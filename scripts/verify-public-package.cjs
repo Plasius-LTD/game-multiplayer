@@ -127,7 +127,9 @@ function verifyPackageContents({ packageJson }, load = require) {
   if (JSON.stringify(packageJson.exports) !== JSON.stringify(expected)) {
     throw new Error("Package dual-module exports are incorrect.");
   }
-  for (const [module, names] of [["index", ["createRoom", "parseRoom", "planMatch", "createAuthority", "parseClientFrame", "parseServerFrame"]],
+  for (const [module, names] of [["index", ["createRoom", "parseRoom", "planMatch", "createAuthority", "parseClientFrame", "parseServerFrame",
+    "parseGameResult", "serializeGameResult", "classifyResultReplay", "createAbandonedResult", "rankingPartition", "parseRankingPartition",
+    "serializeRankingPartition", "projectRankingEntries", "summarizeGameResult"]],
     ["azure-web-pubsub", ["connectWebPubSub"]]]) {
     const api = load(path.resolve(process.cwd(), `dist/${module}.cjs`));
     for (const name of names) if (typeof api[name] !== "function") throw new Error("Required multiplayer export is missing.");

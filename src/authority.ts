@@ -1,6 +1,7 @@
 import { createSchema } from "@plasius/schema";
 import { exact, integer, parseRoom, token, type GameRoom, type RoomMember } from "./contracts.js";
 import { parseClientFrame, parseServerFrame, type ServerFrame } from "./protocol.js";
+import { parseGameOutcome, parseRankingMetric, prepareCompletedResult, type AuthorityResults, type ResultCandidate } from "./results.js";
 
 /** Structural port of the released game-runtime; this package never simulates ticks itself. */
 export interface AuthorityRuntime<S> {
@@ -23,8 +24,10 @@ export interface AuthorityOptions<S, I extends { playerId: string }> {
   parseInput(raw: unknown): I;
   /** Serialize an explicit game-owned public projection for this recipient's player slot. */
   projectState(snapshot: { tick: number; state: S }, playerId: string): string;
+  /** Optional game-owned terminal evaluation; clients never provide the score or ranking grant. */
+  results?: AuthorityResults<S>;
 }
-export type AuthorityStopReason = "fenced" | "lease-expired" | "clock" | "disabled" | "runtime" | "overloaded" | "projection" | "room-ended";
+export type AuthorityStopReason = "fenced" | "lease-expired" | "clock" | "disabled" | "runtime" | "overloaded" | "projection" | "room-ended" | "result-prepared";
 export interface AuthorityStatus { state: "active" | "stopped" | "disposed"; rankingEligible: boolean; reason?: AuthorityStopReason }
 export type IntentReceipt = { status: "accepted"; signal?: ServerFrame } | { status: "invalid" | "denied" | "rejected" | "inactive" };
 export type AuthorityAdvance = { status: "advanced" | "stopped"; steps: number; discardedMs: number } | { status: "inactive" };
@@ -40,6 +43,9 @@ export function createAuthority<S, I extends { playerId: string }>(options: Auth
   const { runtime, clock, enabled, parseInput, projectState } = options;
   if (room.state !== "active" || [clock, enabled, parseInput, projectState, runtime?.enqueue, runtime?.advance,
     runtime?.snapshot, runtime?.status, runtime?.pause, runtime?.dispose].some(fn => typeof fn !== "function")) throw new TypeError("invalid-authority-options");
+  const results = options.results === undefined ? undefined : { ...options.results, metric: parseRankingMetric(options.results.metric) };
+  if (results && (typeof results.evaluate !== "function" || (results.eligible !== undefined && typeof results.eligible !== "function"))) throw new TypeError("invalid-result-options");
+  let prepared: ResultCandidate | undefined;
   let state: AuthorityStatus["state"] = "active";
   let reason: AuthorityStopReason | undefined;
   let lastNow = room.updatedAt;
@@ -104,6 +110,12 @@ export function createAuthority<S, I extends { playerId: string }>(options: Auth
     busy = true;
     try { return live() ? operation() : fallback; } finally { busy = false; }
   }
+  const isAsync = (value: unknown): boolean => {
+    if (value && typeof value === "object" && typeof (value as Promise<unknown>).then === "function") {
+      void Promise.resolve(value).catch(() => {}); return true;
+    }
+    return false;
+  };
 
   return {
     status(): AuthorityStatus {
@@ -163,6 +175,35 @@ export function createAuthority<S, I extends { playerId: string }>(options: Auth
         } catch { stop("runtime"); return { status: "inactive" }; }
       });
     },
+    /** Prepare one immutable terminal result; persistence must atomically compare every returned boundary. */
+    finalize(): ResultCandidate | null {
+      if (arguments.length > 0 || state === "disposed" || busy) return null;
+      if (prepared) return structuredClone(prepared);
+      return exclusive<ResultCandidate | null>(null, () => {
+        if (!results) return null;
+        try {
+          const snapshot = runtime.snapshot();
+          const tick = snapshot.tick;
+          if (tick === 0) return null;
+          const outcome = results.evaluate(snapshot);
+          if (isAsync(outcome)) throw new TypeError("async-result-evaluation");
+          if (outcome === null || !live()) return null;
+          const parsed = parseGameOutcome(outcome, room);
+          const eligible = new Set<string>();
+          for (const player of parsed.players) {
+            if (player.outcome !== "finished") continue;
+            try {
+              const decision = results.eligible?.({ roomId: room.roomId, revision: room.revision, epoch: room.epoch, playerId: player.playerId });
+              if (!isAsync(decision) && decision === true) eligible.add(player.playerId);
+            } catch { /* Missing, unavailable or malformed policy never grants ranking eligibility. */ }
+          }
+          if (!live()) return null;
+          prepared = prepareCompletedResult(room, tick, parsed, results.metric, eligible, lastNow, lease!.expiresAt);
+          stop("result-prepared");
+          return prepared ? structuredClone(prepared) : null;
+        } catch { stop("projection"); return null; }
+      });
+    },
     /** Supply only a committed host record; old revisions cannot undo revocation or replacement. */
     updateRoom(raw: unknown): boolean {
       return exclusive(false, () => {
@@ -172,7 +213,13 @@ export function createAuthority<S, I extends { playerId: string }>(options: Auth
         if (next.epoch > room.epoch) { stop("fenced"); return false; }
         if (next.epoch !== room.epoch || next.revision <= room.revision || next.updatedAt < room.updatedAt
           || next.updatedAt > lastNow || pinned(next) !== identity || next.state === "waiting"
-          || next.members.some(member => originalRoster.get(member.playerId) !== member.subject)) return false;
+          || next.members.length !== originalRoster.size
+          || next.members.some(member => {
+            const current = room.members.find(value => value.playerId === member.playerId);
+            return !current || originalRoster.get(member.playerId) !== member.subject || member.alias !== current.alias
+              || (current.left && !member.left) || member.generation < current.generation
+              || (member.connectionId !== current.connectionId && member.generation === current.generation);
+          })) return false;
         room = next;
         if (room.state !== "active") stop("room-ended");
         return true;
@@ -188,7 +235,7 @@ export function createAuthority<S, I extends { playerId: string }>(options: Auth
     },
     dispose(): void {
       if (state === "disposed") return;
-      state = "disposed"; signals.clear(); room.members = [];
+      state = "disposed"; signals.clear(); room.members = []; prepared = undefined;
       try { runtime.dispose(); } catch { /* Cancellation has already closed every entry point. */ }
     },
   };

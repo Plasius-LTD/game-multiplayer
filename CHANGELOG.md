@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- Add terminal runtime result preparation, immutable uncertain-commit replay,
+  strict completed/abandoned records, exact ranking partitions, eligible-only
+  projections and count-only telemetry (#2).
+- Keep active participant aliases and departed slots pinned; reject connection
+  replacements without advancing generation and all generation rollback.
 - Add strict private room/public view contracts, revision/epoch-bound lifecycle
   candidates, fresh-policy reconnect and bounded mutual matchmaking plans (#1).
 - Add runtime-backed authority with leases, connection fencing, public projections,

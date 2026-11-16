@@ -1,0 +1,28 @@
+// Copy into the isolated tarball consumer as .mts and .cts; the runtime package is not a workspace dependency.
+import { createAuthority, parseGameResult, rankingPartition, projectRankingEntries, type GameRoom,
+  type AuthorityResults, type ResultCandidate } from "@plasius/game-multiplayer";
+import { createGameRuntime, parseInput, serializeState, type GameRules } from "@plasius/game-runtime";
+declare const rules: GameRules<{ count: number }>;
+declare const room: GameRoom;
+const results: AuthorityResults<{ count: number }> = {
+  metric: { id: "points", order: "descending" },
+  evaluate: snapshot => snapshot.state.count > 0 ? { type: "gameOutcome", version: "1.0.0", players: [
+    { playerId: "p1", outcome: "finished", value: snapshot.state.count },
+  ] } : null,
+  eligible: context => context.playerId === "p1",
+};
+const authority = createAuthority({ room, results,
+  runtime: createGameRuntime(rules, { seed: 1, players: ["p1"] }),
+  lease: { roomId: room.roomId, epoch: room.epoch, expiresAt: Date.now() + 1000 },
+  clock: Date.now, enabled: () => true, parseInput, projectState: snapshot => serializeState(snapshot.state),
+});
+const candidate: ResultCandidate | null = authority.finalize();
+if (candidate) {
+  const result = parseGameResult(candidate.result);
+  if (result.status === "completed") {
+    const tick: number = result.finalTick;
+    const partition = rankingPartition(result);
+    const entries = projectRankingEntries(result);
+    void tick; void partition.metric.order; void entries[0]?.value;
+  }
+}

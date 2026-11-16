@@ -8,3 +8,6 @@ export { parseClientFrame, parseServerFrame, MAX_CLIENT_FRAME_BYTES, MAX_SERVER_
 export type { ClientFrame, ServerFrame, GameSignal } from "./protocol.js";
 export { createAuthority, MAX_AUTHORITY_LEASE_MS } from "./authority.js";
 export type { AuthorityRuntime, AuthorityLease, ConnectionBinding, AuthorityOptions, AuthorityStatus, AuthorityStopReason, IntentReceipt, AuthorityAdvance } from "./authority.js";
+export { parseGameResult, serializeGameResult, classifyResultReplay, createAbandonedResult, rankingPartition,
+  parseRankingPartition, serializeRankingPartition, projectRankingEntries, summarizeGameResult, MAX_RESULT_BYTES } from "./results.js";
+export type { RankingMetric, RankingPartition, GameOutcome, GameResult, ResultCandidate, RankingPolicyContext, AuthorityResults, RankingEntry } from "./results.js";
