@@ -188,3 +188,13 @@ See [design](docs/design/authoritative-sessions.md),
 [TDR 0001](docs/tdrs/tdr-0001-room-and-admission-bounds.md),
 [TDR 0002](docs/tdrs/tdr-0002-result-validation-and-replay.md),
 [contributing](CONTRIBUTING.md) and [security](SECURITY.md). Apache-2.0.
+
+## Release notes
+
+Add meaningful changes under `Unreleased`; the approved release pipeline alone
+promotes versioned sections. Preparation and the merged-main check reuse
+Schema's dependency-free `scripts/release-changelog.mjs`, reject placeholder or
+empty release notes, and preserve published history on retries. See the
+[release-note design](docs/design/release-notes.md) for the template revision
+and validation contract. The first-registration and permanent OIDC handover
+remain governed by the [publication route](docs/design/first-publication.md).

@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Reuse Schema release-note preparation and validation, preserving authored
+  history and rejecting empty or placeholder release notes before publication.
+
 - Add terminal runtime result preparation, immutable uncertain-commit replay,
   strict completed/abandoned records, exact ranking partitions, eligible-only
   projections and count-only telemetry (#2).
