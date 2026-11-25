@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-25
+
 - Replace remaining external Picomatch implementations with the verified public
   Plasius Glob 1.0.2 adapter and its exact Minimatch 11.0.9 engine. Validate all
   installed package identities/code and preserve complete test discovery (#8).
@@ -34,3 +36,6 @@
   reporting while retaining all coverage thresholds and combined LCOV gates.
 - Reuse the reviewed default-off main CD first-registration route, pending
   operator credential approval and permanent OIDC handover.
+
+[Unreleased]: https://github.com/Plasius-LTD/game-multiplayer/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Plasius-LTD/game-multiplayer/releases/tag/v0.1.0
