@@ -174,10 +174,12 @@ ESM/CJS/declarations for both entries. Private contributor records remain outsid
 the repository and package.
 
 CI uses admitted frozen/protected refs on the quarantined runner group. Publish
-only through main `.github/workflows/cd.yml` and `production`. The default-off
-first-registration route is prepared under game-runtime#3/site#2531, pending
-operator credential authorization, verified absence, sealed artifacts and OIDC
-handover. Never publish locally or use production workspace links. Unit/browser
+only through main `.github/workflows/cd.yml` and `production`. Initial version
+`0.1.0` is published and verified under Task #12; its first-registration enrollment
+is retired. Subsequent releases require ordinary OIDC through the exact trusted
+publisher, with handover and cleanup tracked in the
+[shared registration design](docs/design/shared-first-registration.md).
+Never publish locally or use production workspace links. Unit/browser
 protocol tests cannot qualify Azure deployment or 100 players in UK South.
 
 See [design](docs/design/authoritative-sessions.md),
@@ -221,11 +223,12 @@ still use the approved release workflow.
 
 ## Package registration and trusted publishing
 
-The release workflow follows the shared `@plasius/schema` template. The reviewed
-enrollment allows only `@plasius/game-multiplayer@0.1.0` through main `cd.yml` and the
-`production` environment, using the standard temporary `NPM_TOKEN`. The default
-release path remains OIDC. No package-specific secret is introduced. See the
+The release workflow follows the shared `@plasius/schema` template. Initial
+registration of `@plasius/game-multiplayer@0.1.0` is verified and its enrollment
+descriptor is retired. Releases use main `cd.yml`, the `production` environment
+and npm Trusted Publishing through OIDC. Ordinary releases do not use `NPM_TOKEN`;
+an explicit first-registration request now fails before registry access. See the
 [registration design](docs/design/shared-first-registration.md) and
 [ADR 0004](docs/adrs/adr-0004-shared-schema-registration.md) for exact admission, credential cleanup
-and the verified OIDC handover. Publication remains incomplete until CD and npm
+and the OIDC handover checks. Each release remains incomplete until CD and npm
 registry integrity are verified.
