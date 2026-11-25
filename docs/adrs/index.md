@@ -4,3 +4,4 @@
 - [adr-0002-azure-event-transport](adr-0002-azure-event-transport.md)
 - [adr-0003-authoritative-result-commit-boundary](adr-0003-authoritative-result-commit-boundary.md)
 - [ADR 0004: Shared Schema registration](adr-0004-shared-schema-registration.md)
+- [ADR 0005: Build tool dependency removal](adr-0005-build-tool-dependency-removal.md)
